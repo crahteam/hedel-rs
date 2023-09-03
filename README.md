@@ -12,6 +12,10 @@ in Rust.
    pub inner: Rc<HedelCell<NodeInner<T>>> 
  }
 
+ pub struct WeakNode<T> {
+   pub inner: Weak<HedelCell<NodeInner<T>>> 
+ }
+
  pub struct NodeInner<T> {
    pub parent: Option<WeakNode<T>>,
    pub child: Option<Node<T>>,
