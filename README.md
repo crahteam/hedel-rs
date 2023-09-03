@@ -1,6 +1,6 @@
  ![alt text](https://media.discordapp.net/attachments/1147987451663614012/1147989627194576906/hed.png)
  
-# A Hierarchical Doubly Linked list Rust library
+# A Rust Hierarchical Doubly Linked list
 hedel-rs provides structs, traits, methods to create your own abstraction over a hierarchical doubly linked list
 in Rust. 
 
