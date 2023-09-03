@@ -6,7 +6,8 @@ in Rust.
 
 # Features
 - HedelCell: a RefCell-like structure but smaller, safely relying on UnsafeCell.
-- Node/WeakNode: linked lists are made of nodes pointing to each other. In this case
+- Node/WeakNode: linked lists are made of nodes pointing to each other. In this case the
+  child field is pointing to the first child, and content is a custom field to let you own whatever you want.
 ``` rust
  pub struct Node<T> {
    pub inner: Rc<HedelCell<NodeInner<T>>> 
@@ -24,4 +25,5 @@ in Rust.
    pub content: T
  }
 ```
-child is pointing to the first child, and content is a custom field to let you own whatever you want.
+- NodeList: simply represents its first child. necessary because treated differently.
+- NodeCollection: a vector of Nodes that can be retrived using methods.
