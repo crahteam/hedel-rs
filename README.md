@@ -9,15 +9,15 @@ in Rust.
 - Node/WeakNode: linked lists are made of nodes pointing to each other. In this case
 ``` rust
  pub struct Node<T> {
-   inner: Rc<HedelCell<NodeInner<T>>> 
+   pub inner: Rc<HedelCell<NodeInner<T>>> 
  }
 
  pub struct NodeInner<T> {
-   parent: Option<WeakNode<T>>,
-   child: Option<Node<T>>,
-   next: Option<Node<T>>,
-   prev: Option<WeakNode<T>>,
-   content: T
+   pub parent: Option<WeakNode<T>>,
+   pub child: Option<Node<T>>,
+   pub next: Option<Node<T>>,
+   pub prev: Option<WeakNode<T>>,
+   pub content: T
  }
 ```
 child is pointing to the first child, and content is a custom field to let you own whatever you want.
