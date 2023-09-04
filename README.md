@@ -7,7 +7,7 @@
 
 hedel-rs provides all you need to create your own abstraction over a
 hierarchical doubly linked list in Rust, suitable choice for a DOM tree.
-Based on Rc, Weak, and a safe wrapper around UnsafeCell (HedelCell).
+Based on `Rc`, `Weak`, and a safe wrapper around `UnsafeCell` (`HedelCell`).
 
 If you are new to linked lists, consider reading [Learn Rust With Entirely Too Many Linked Lists](https://rust-unofficial.github.io/too-many-lists/)
 
