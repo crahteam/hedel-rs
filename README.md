@@ -6,10 +6,15 @@
 
 [![License](https://img.shields.io/badge/licence-GPL3.0-blue)](LICENSE-GPL)
 
-hedel-rs provides structs, traits, methods to create your own abstraction over a hierarchical doubly linked list
-in Rust. 
+hedel-rs provides all you need to create your own abstraction over a
+hierarchical doubly linked list in Rust.
+This library is expecially suitable for DOM linked lists.
 
+It's based on Rc, Weak, and HedelCell ( a custom RefCell-like cell ).
+
+If you are new to linked lists, consider reading [![LRWETMLL](https://rust-unofficial.github.io/too-many-lists/)](Learn Rust With Entirely Too Many Linked Lists)
 # Features
+
 - HedelCell: a RefCell-like structure but smaller, safely relying on UnsafeCell.
 - Node/WeakNode: linked lists are made of nodes pointing to each other. In this case the
   child field is pointing to the first child, and content is a custom field to let you own whatever you want.
