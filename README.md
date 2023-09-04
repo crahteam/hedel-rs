@@ -28,5 +28,6 @@ hedel isn't exactly a tree structure.
 
 - `HedelCell`: a cell structure safely relying on UnsafeCell, similar to `RefCell` but smaller in size.
 - `Node`/`WeakNode`: to avoid memory-leaking we also provide a weak version of `Node`.
-- Collect and identify: create your own identifier implementing the `NodeComparable` trait, iterate over the linked list and collect
+- Identify and collect: create your own identifier implementing the `NodeComparable` trait, iterate over the linked list and collect
   only the nodes matching the identifier.
+- Identify and detach: iterate over the linked list and detach only the nodes matching the identifier (move out or remove).
