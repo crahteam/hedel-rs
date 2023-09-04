@@ -12,7 +12,7 @@ This library is expecially suitable for DOM linked lists.
 
 It's based on Rc, Weak, and HedelCell ( a custom RefCell-like cell ).
 
-If you are new to linked lists, consider reading [![LRWETMLL](https://rust-unofficial.github.io/too-many-lists/)](Learn Rust With Entirely Too Many Linked Lists)
+If you are new to linked lists, consider reading [Learn Rust With Entirely Too Many Linked Lists](https://rust-unofficial.github.io/too-many-lists/)
 # Features
 
 - HedelCell: a RefCell-like structure but smaller, safely relying on UnsafeCell.
