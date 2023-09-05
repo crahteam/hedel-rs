@@ -1,7 +1,7 @@
 
 # hedel-rs
 
-> **A Rust Hierarchical Doubly Linked list**
+> **A Rust Hierarchical Doubly Linked List**
 
 [![License](https://img.shields.io/badge/licence-GPL3.0-blue)](LICENSE-GPL)
 
