@@ -20,8 +20,8 @@ hedel isn't exactly a tree structure.
 - Given any node in the linked lists you should be able to navigate it all.
 - `Node` is simply a wrap on an `Rc` pointer to `HedelCell<NodeInner<T>>`, which contains the actual data in the `content` field.
 - Every `Node` has a `child` field which is the first child, allowing you to move vertically.
-- This crate provides traits, methods, structs, but we don't provide any fast-way to generate an actual linked list. That's what you are going to build;
-  this allows for multiple use cases and better flexibility: do it with macros, functions ...
+- This crate provides traits, methods, structs, and macros for a fast node generation. However, its target projects are
+  
 - Tendency to make everything `pub`, for the previous point.
   
 # Features
