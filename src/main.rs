@@ -1,17 +1,81 @@
-use hedel_rs::node::{
-	Node
+use hedel_rs::{
+	node,
+	list,
+	node::{
+		Node,
+		Content,
+	},
+	prelude::*
 };
 
+pub enum Ident {
+	BiggerThan(i32),
+	SmallerThan(i32)
+}
+
+impl NodeComparable<i32> for Ident {
+	fn compare(&self, node: &Node<i32>) -> bool {
+		match &node.get().content {
+			Content::Custom(num) => {
+				match &self {
+					Self::BiggerThan(n) => return num > n,
+					Self::SmallerThan(n) => return num < n
+				}
+			},
+			Content::List(ptr) => {
+				let mut list = *ptr.clone();
+				while let Content::List(b) = list {
+					list = *b.clone();
+				}
+
+				if let Content::Custom(num) = list {
+					match &self {
+						Self::BiggerThan(n) => return num > *n,
+						Self::SmallerThan(n) => return num < *n
+					}
+				}
+
+				return false;
+			}
+		}
+	}
+}
 fn main() {
+    unsafe { backtrace_on_stack_overflow::enable() };
 	let now = std::time::Instant::now();
+	let l =  node!(
+			16, // b
+			node!(56,
+				node!(11),
+				node!(9)
+			),
+			node!(7),
+			node!(4),
+			node!(8)
+		);
 
-	let x = Node::<i32>::new(7);
+	//let b = l.find_linked_list(&Ident::SmallerThan(13)).unwrap();
 
-	x.get_mut().content = 90;
-	println!("{:?}", x.get().content);
+	//b.detach();
 
-	let mut borr = x.get_mut();
-	borr.content = 3;
+	let a = l.find_linked_list(&Ident::SmallerThan(5)).unwrap();
 
+	let b = a.collect_siblings(&Ident::SmallerThan(13));
+
+	for node in b.into_iter() {
+		println!("{:#?}", node.get().content);
+	}
+
+
+	let node = node!(2);
+	let c = 0;
+	hedel_rs::as_content!(&node, |num| {
+		if num > &c {
+			println!("sono il {}", num);
+		}
+	});
+	
+	let due = node.to_content();
+	println!("sono il {}", due);
 	println!("{:?}", now.elapsed().as_nanos());
 }
