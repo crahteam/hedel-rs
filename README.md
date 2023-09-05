@@ -32,7 +32,7 @@ hedel isn't exactly a tree structure.
   only the nodes matching the identifier.
 - Identify and detach: iterate over the linked list and detach only the nodes matching the identifier (move out or remove).
 - Macros: generate nodes blazingly fast with node! and list!
-  ```
+  ```rust
   let node = node!(45);
   let my_node = node!("Parent",
     node!("Child"),
