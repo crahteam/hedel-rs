@@ -28,6 +28,21 @@ hedel isn't exactly a tree structure.
 
 - `HedelCell`: a cell structure safely relying on UnsafeCell, similar to `RefCell` but smaller in size.
 - `Node`/`WeakNode`: to avoid memory-leaking we also provide a weak version of `Node`.
+- Macros: generate nodes blazingly fast with node!() and list!()
+  
+  ```rust
+  let node = node!(45);
+  let my_node = node!("Parent",
+    node!("Child"),
+    node!("Child")
+  );
+
+  let my_list = list!(
+    node!(2),
+    node!(3)
+  );
+  ```
+  
 - Identify and compare: create your own identifier implementing the `CompareNode` trait.
 
   ```rust
@@ -80,18 +95,30 @@ hedel isn't exactly a tree structure.
     println!("{}" node.to_content());
   }
   ```
-- Identify and detach: iterate over the linked list and detach only the nodes matching the identifier (move out or remove).
-- Macros: generate nodes blazingly fast with node!() and list!()
   
+- Detach: detach the nodes matching an identifier in the linked list.
   ```rust
-  let node = node!(45);
-  let my_node = node!("Parent",
-    node!("Child"),
-    node!("Child")
+  let node = node!(1
+    node!(2),
+    node!(3),
+    node!(4),
+    node!(5)
   );
 
-  let my_list = list!(
-    node!(2),
-    node!(3)
-  );
+  let three = node.find_child(&NumIdent::Equal(3)).unwrap();
+  three.detach();
+
+  assert_eq!(node.find_child(&NumIdent::Equal(3)), None);
   ```
+  - Insert or Append: insert a node at any position in a linked list.
+    ```rust
+    let node = node!(1,
+      node!(3),
+      node!(4),
+      node!(5)
+    );
+
+    node.insert_child(0, node!(2));
+
+    assert_eq!(node.child().to_content(), 2);
+    ```
