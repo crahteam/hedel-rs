@@ -1,3 +1,4 @@
+/*
 use hedel_rs::{
 	node,
 	list,
@@ -86,4 +87,9 @@ fn main() {
 	let tre = nodo.get_last_child().unwrap();
 	println!("INSERIMENTO: {}", tre.to_content());
 	println!("{:?}", now.elapsed().as_nanos());
+}
+*/
+
+fn main() {
+
 }

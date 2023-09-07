@@ -5,13 +5,13 @@ pub mod list;
 
 pub mod prelude {
 	pub use crate::node::{
-		HedelFind,
-		HedelGet,
-		HedelCollect,
-		HedelDetach,
+		FindNode,
+		GetNode,
+		CollectNode,
+		DetachNode,
 		AppendNode,
 		InsertNode,
-		NodeComparable
+		CompareNode
 	};
 }
 

@@ -219,12 +219,12 @@ macro_rules! as_content {
 	}
 }
 
-pub trait HedelDetach<T: Debug + Clone> {
+pub trait DetachNode<T: Debug + Clone> {
 	fn detach(&self);
 	fn detach_preserve(&self, vec: &mut NodeCollection<T>);
 }
 
-impl<T: Debug + Clone> HedelDetach<T> for Node<T> {
+impl<T: Debug + Clone> DetachNode<T> for Node<T> {
 	/// Detaches a single node from the linked list by fixing the pointers between the 
 	/// parent, the previous and next siblings. This also detaches all the children of the `Node`,
 	/// which will only remain linked with the node itself.
@@ -347,7 +347,7 @@ impl<T: Debug + Clone> HedelDetach<T> for Node<T> {
 }
 
 /// `NodeCollection` represents a `Vec` of `Node`s. Usually retrived by collecting over
-/// a `Node` linked list using the `HedelCollect` trait implementation.
+/// a `Node` linked list using the `CollectNode` trait implementation.
 /// WARNING: this is not a linked list, but simply a collection of unrelated nodes.
 /// The contained nodes might come from separated linked lists or from the same one.
 pub struct NodeCollection<T: Debug + Clone> {
@@ -406,7 +406,7 @@ impl<T: Debug + Clone> IntoIterator for NodeCollection<T> {
 	}
 }
 
-/// Users are supposed to impl `NodeComparable` for an enum they would
+/// Users are supposed to impl `CompareNode` for an enum they would
 /// like to use as an identifier.
 ///
 /// # Example
@@ -417,7 +417,7 @@ impl<T: Debug + Clone> IntoIterator for NodeCollection<T> {
 ///		SmallerThan(i32)
 /// }
 ///
-/// impl NodeComparable<i32> for NumIdent {
+/// impl CompareNode<i32> for NumIdent {
 /// 	fn compare(&self, node: &Node<i32>) -> bool {
 /// 		as_content!(node, |content| {
 ///				match &self {
@@ -432,21 +432,21 @@ impl<T: Debug + Clone> IntoIterator for NodeCollection<T> {
 ///		}
 /// }
 /// ```
-pub trait NodeComparable<T: Debug + Clone> {
+pub trait CompareNode<T: Debug + Clone> {
 	fn compare(&self, node: &Node<T>) -> bool;
 }
 
-pub trait HedelCollect<P: Debug + Clone, T: NodeComparable<P>> {
-	fn collect_siblings(&self, ident: &T) -> NodeCollection<P>;
-	fn collect_children(&self, ident: &T) -> NodeCollection<P>;
-	fn collect_linked_list(&self, ident: &T) -> NodeCollection<P>;
+pub trait CollectNode<T: Debug + Clone, I: CompareNode<T>> {
+	fn collect_siblings(&self, ident: &I) -> NodeCollection<T>;
+	fn collect_children(&self, ident: &I) -> NodeCollection<T>;
+	fn collect_linked_list(&self, ident: &I) -> NodeCollection<T>;
 }                                                         
 
-impl<P: Debug + Clone, T: NodeComparable<P>> HedelCollect<P, T> for Node<P> {
-	/// Given an identifier of type implementing `NodeComparable` this iterates over all the nodes
+impl<T: Debug + Clone, I: CompareNode<T>> CollectNode<T, I> for Node<T> {
+	/// Given an identifier of type implementing `CompareNode` this iterates over all the nodes
 	/// in the linked list horizontally ( iterates over the siblings, previous and next ),
 	/// and compare every node. The nodes satisfying the identifier get collected into a `NodeCollection`.
-	fn collect_siblings(&self, ident: &T) -> NodeCollection<P> {
+	fn collect_siblings(&self, ident: &I) -> NodeCollection<T> {
 	
 		let mut collection = Vec::new();
 		
@@ -499,12 +499,12 @@ impl<P: Debug + Clone, T: NodeComparable<P>> HedelCollect<P, T> for Node<P> {
 			}
 		}
 
-		NodeCollection::<P>::new(collection) 
+		NodeCollection::<T>::new(collection) 
 	}
 
-	/// Given an identifier of type implementing `NodeComparable` this iterates over all the nodes that stand 
+	/// Given an identifier of type implementing `CompareNode` this iterates over all the nodes that stand 
 	/// lower and deeper in the linked list. Every child satysfying the identifier get collected into a `NodeCollection`
-	fn collect_children(&self, ident: &T) -> NodeCollection<P> {
+	fn collect_children(&self, ident: &I) -> NodeCollection<T> {
 
 		let mut collection = Vec::new();
 
@@ -575,10 +575,10 @@ impl<P: Debug + Clone, T: NodeComparable<P>> HedelCollect<P, T> for Node<P> {
 			}
 		}
 
-		NodeCollection::<P>::new(collection)
+		NodeCollection::<T>::new(collection)
 	}
 	
-	/// Given an identifier of type implementing `NodeComparable` this iterates over all the nodes in the 
+	/// Given an identifier of type implementing `CompareNode` this iterates over all the nodes in the 
 	/// linked list both horizontally and vertically ( iterates horizontally in each hierarchical level,
 	/// up to the top parent and down to the deepest child also
 	/// iterating vertically and horizontally for each layer of the children ).
@@ -603,7 +603,7 @@ impl<P: Debug + Clone, T: NodeComparable<P>> HedelCollect<P, T> for Node<P> {
 	/// 	println!("{}", node.to_content());
 	/// }
 	/// ```
-	fn collect_linked_list(&self, ident: &T) -> NodeCollection<P> {
+	fn collect_linked_list(&self, ident: &I) -> NodeCollection<T> {
 		
 		let mut collection = Vec::new();
 		
@@ -727,19 +727,19 @@ impl<P: Debug + Clone, T: NodeComparable<P>> HedelCollect<P, T> for Node<P> {
 			}
 		}
 
-		NodeCollection::<P>::new(collection)
+		NodeCollection::<T>::new(collection)
 	}
 } 
 
-pub trait HedelFind<P: Debug + Clone, T: NodeComparable<P>> {
-	fn find_next(&self, ident: &T) -> Option<Node<P>>;
-	fn find_prev(&self, ident: &T) -> Option<Node<P>>;
-	fn find_sibling(&self, ident: &T) -> Option<Node<P>>;
-	fn find_child(&self, ident: &T) -> Option<Node<P>>;
-	fn find_linked_list(&self, ident: &T) -> Option<Node<P>>;
+pub trait FindNode<T: Debug + Clone, I: CompareNode<T>> {
+	fn find_next(&self, ident: &I) -> Option<Node<T>>;
+	fn find_prev(&self, ident: &I) -> Option<Node<T>>;
+	fn find_sibling(&self, ident: &I) -> Option<Node<T>>;
+	fn find_child(&self, ident: &I) -> Option<Node<T>>;
+	fn find_linked_list(&self, ident: &I) -> Option<Node<T>>;
 }                                                         
 
-impl<P: Debug + Clone, T: NodeComparable<P>> HedelFind<P, T> for Node<P> {
+impl<T: Debug + Clone, I: CompareNode<T>> FindNode<T, I> for Node<T> {
 	/// Get the first `Node` in the linked list, at the same depth-level of `&self` and coming after it,
 	/// matching the identifier.
 	/// This guarantees to actually retrive the closest `Node`.
@@ -756,7 +756,7 @@ impl<P: Debug + Clone, T: NodeComparable<P>> HedelFind<P, T> for Node<P> {
 	///	let one = node.get_first_child();
 	/// let ss: Option<Node<i32>> = one.find_next(&NumIdent::BiggerThan(50)); // returns the `node!(66)`
 	/// ```
-	fn find_next(&self, ident: &T) -> Option<Node<P>> {
+	fn find_next(&self, ident: &I) -> Option<Node<T>> {
 		if let Some(next) = self.next() {
 			let mut next = next;
 
@@ -781,7 +781,7 @@ impl<P: Debug + Clone, T: NodeComparable<P>> HedelFind<P, T> for Node<P> {
 	/// Get the first `Node` in the linked list, at the same depth-level of `&self` and coming before it,
 	/// matching the identifier.
 	/// This guarantees to actually retrive the closest `Node`.
-	fn find_prev(&self, ident: &T) -> Option<Node<P>> {
+	fn find_prev(&self, ident: &I) -> Option<Node<T>> {
 		if let Some(prev) = self.prev() {
 			let mut prev = prev;
 
@@ -808,7 +808,7 @@ impl<P: Debug + Clone, T: NodeComparable<P>> HedelFind<P, T> for Node<P> {
 	/// WARNING: it's not guaranteed to retrive the closest `Node`. Only use when you don't
 	/// care about which node is retrived as long as it matches the identifier or when you are 100% sure
 	/// that there isn't more than one `Node` satisfying the identifier in the linked list.
-	fn find_linked_list(&self, ident: &T) -> Option<Node<P>> {
+	fn find_linked_list(&self, ident: &I) -> Option<Node<T>> {
 		if let 	Some(parent) = self.parent() {
 			let mut parent = parent;
 			
@@ -950,7 +950,7 @@ impl<P: Debug + Clone, T: NodeComparable<P>> HedelFind<P, T> for Node<P> {
 	/// WARNING: it's not guaranteed to retrive the closest `Node`. Only use when you don't
 	/// care about which node is retrived as long as it matches the identifier or when you are 100% sure
 	/// that there isn't more than one `Node` satisfying the identifier in the children.
-	fn find_child(&self, ident: &T) -> Option<Node<P>> {
+	fn find_child(&self, ident: &I) -> Option<Node<T>> {
 		if let Some(child) = self.child() {
 			let mut child = child;
 			/* do */ {
@@ -1023,7 +1023,7 @@ impl<P: Debug + Clone, T: NodeComparable<P>> HedelFind<P, T> for Node<P> {
 	/// In the case you can't know if the `Node` you are looking for comes before or after, here's a combination of the two previous methods. 
 	/// Always prefer using `HedelFind::find_next` and `HedelFind::find_prev` when you know the position of the `Node`,
 	/// as they might be faster.
-	fn find_sibling(&self, ident: &T) -> Option<Node<P>> {
+	fn find_sibling(&self, ident: &I) -> Option<Node<T>> {
 		// in case we dont have a parent
 		// iterates in the previous siblings
 		// iterates in the next siblings
@@ -1089,13 +1089,13 @@ impl<P: Debug + Clone, T: NodeComparable<P>> HedelFind<P, T> for Node<P> {
 
 }
 
-pub trait HedelGet<T: Debug + Clone> {
+pub trait GetNode<T: Debug + Clone> {
 	fn get_first_sibling(&self) -> Option<Node<T>>;
 	fn get_last_sibling(&self) -> Option<Node<T>>;
 	fn get_last_child(&self) -> Option<Node<T>>;
 }
 
-impl<T: Debug + Clone> HedelGet<T> for Node<T> {
+impl<T: Debug + Clone> GetNode<T> for Node<T> {
 
 	/// Get the first `Node` in the linked list at the same depth level of `&self`.
 	/// If None is returned, `&self` is the first `Node` at that depth level.
@@ -1147,7 +1147,7 @@ impl<T: Debug + Clone> HedelGet<T> for Node<T> {
 
 		if let Some(child) = self.child() {
 			
-			let mut child = child;
+			let child = child;
 			
 			if let Some(s) = child.get_last_sibling() {
 				return Some(s);
@@ -1283,7 +1283,7 @@ impl<T: Debug + Clone> InsertNode<T> for Node<T> {
 				node.get_mut().parent = Some(parent.downgrade());
 
 				if let Some(prev) = sibling.prev() {
-					let mut previous = prev;
+					let previous = prev;
 					previous.get_mut().next = Some(node.clone());
 				} else {
 					parent.get_mut().child = Some(node.clone());
