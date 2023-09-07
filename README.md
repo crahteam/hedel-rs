@@ -120,5 +120,9 @@ hedel isn't exactly a tree structure.
 
   node.insert_child(0, node!(2));
 
-  assert_eq!(node.child().to_content(), 2);
+  assert_eq!(node.child().unwrap().to_content(), 2);
+
+  node.append_child(node!(6));
+
+  assert_eq!(node.get_last_child().unwrap().to_content(), 6);
   ```
