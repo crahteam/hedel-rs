@@ -16,12 +16,11 @@ If you are new to linked lists, consider reading [Learn Rust With Entirely Too M
 hedel isn't exactly a tree structure.
 
 - `NodeList` is a wrap around its first node. There isn't any root. This allows for
-  sibling nodes at the root-level while keeping a different treatment compared to `Node`.
-- Given any node in the linked lists you should be able to navigate it all.
-- `Node` is simply a wrap on an `Rc` pointer to `HedelCell<NodeInner<T>>`, which contains the actual data in the `content` field.
-- Every `Node` has a `child` field which is the first child, allowing you to move vertically.
-- Support for node generation by defining the inner nodes first and the outer later.
-  This means you can use the node!() macro and nest as many nodes as you want.
+  sibling nodes at the root-level.
+  `NodeList` also dereferences to its firt node letting you call `Node`'s methods.
+- `Node` is a pointer to its content and other pointers to allow navigation. Those pointers are:
+  `parent`, `child`, `prev` and `next`, where child is a pointer to its first child.
+- Support for node generation using macros: you can use node!(1) and nest how many nodes as you want.
 
 # Features
 
