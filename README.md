@@ -110,15 +110,15 @@ hedel isn't exactly a tree structure.
 
   assert_eq!(node.find_child(&NumIdent::Equal(3)), None);
   ```
-  - Insert or Append: insert a node at any position in a linked list.
-    ```rust
-    let node = node!(1,
-      node!(3),
-      node!(4),
-      node!(5)
-    );
+- Insert or Append: insert a node at any position in a linked list.
+  ```rust
+  let node = node!(1,
+   node!(3),
+   node!(4),
+   node!(5)
+  );
 
-    node.insert_child(0, node!(2));
+   node.insert_child(0, node!(2));
 
-    assert_eq!(node.child().to_content(), 2);
-    ```
+   assert_eq!(node.child().to_content(), 2);
+  ```
