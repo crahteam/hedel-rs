@@ -17,4 +17,3 @@ description = "A Hierarchical Doubly Linked List."
 
 [dependencies]
 thiserror = "1.0"
-backtrace-on-stack-overflow = "0.3.0"
