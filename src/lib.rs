@@ -3,8 +3,6 @@ pub mod cell;
 pub mod errors;
 pub mod list;
 
-//! # hedel-rs 
-//!
 //! **A Hierarchical Doubly Linked List**
 //!
 //! Hedel-rs provides all you need to create your own abstraction over a
