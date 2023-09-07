@@ -1,8 +1,3 @@
-pub mod node;
-pub mod cell;
-pub mod errors;
-pub mod list;
-
 //! **A Hierarchical Doubly Linked List**
 //!
 //! Hedel-rs provides all you need to create your own abstraction over a
@@ -148,6 +143,11 @@ pub mod list;
 //! 
 //!   assert_eq!(node.get_last_child().unwrap().to_content(), 6);
 //!   ```
+
+pub mod node;
+pub mod cell;
+pub mod errors;
+pub mod list;
 
 pub mod prelude {
 	pub use crate::node::{
