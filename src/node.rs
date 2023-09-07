@@ -1159,6 +1159,189 @@ impl<T: Debug + Clone> HedelGet<T> for Node<T> {
 	}
 }
 
+pub trait AppendNode<T: Debug + Clone> {
+	fn append_next(&self, node: Node<T>);
+	fn append_child(&self, node: Node<T>);
+	fn append_prev(&self, node: Node<T>);
+}
+
+impl<T: Debug + Clone> AppendNode<T> for Node<T> {
+
+	/// Inserts a new node right after `&self`.
+	///
+	/// # Example
+	///
+	/// ```
+	/// let node = node!(1, node!(2));
+	/// let two = node.child();
+	/// two.append_next(node!(3));
+	/// println!("{}", node.get_last_child().to_content());
+	/// ```
+	fn append_next(&self, node: Node<T>) {
+		if let Some(parent) = self.parent() {
+			node.get_mut().parent = Some(parent.downgrade());
+		}
+		
+		if let Some(next) = self.next() {
+			next.get_mut().prev = Some(node.downgrade());
+			node.get_mut().next = Some(next);
+		}
+
+		self.get_mut().next = Some(node.clone());
+		node.get_mut().prev = Some(self.downgrade());
+	}
+	
+	/// Inserts a new node right before `&self`.
+	///
+	/// # Example
+	///
+	/// ```
+	/// let node = node!(1, node!(2));
+	/// let two = node.child();
+	/// two.append_prev(node!(3));
+	/// println!("{}", node.child().to_content());
+	/// ```
+	fn append_prev(&self, node: Node<T>) {
+		if let Some(parent) = self.parent() {
+			node.get_mut().parent = Some(parent.downgrade());
+		}
+		
+		if let Some(prev) = self.prev() {
+			prev.get_mut().next = Some(node.clone());
+			node.get_mut().prev = Some(prev.downgrade());
+		}
+
+		self.get_mut().prev = Some(node.downgrade());
+		node.get_mut().next = Some(self.clone());
+	}
+
+	/// Inserts a new node right after the last child of `&self`.
+	///
+	/// # Example
+	///
+	/// ```
+	/// let node = node!(1, node!(2));
+	/// node.append_child(node!(3));
+	/// println!("{}", node.get_last_child().to_content());
+	/// ```
+	fn append_child(&self, node: Node<T>) {
+		node.get_mut().parent = Some(self.downgrade());
+		if let Some(last_child) = self.get_last_child() {
+			last_child.get_mut().next = Some(node.clone());
+			node.get_mut().prev = Some(last_child.downgrade());
+		} else {
+			self.get_mut().child = Some(node);
+		}
+	}
+}
+pub trait InsertNode<T: Debug + Clone> {
+	fn insert_sibling(&self, position: usize, node: Node<T>);
+	fn insert_child(&self, position: usize, node: Node<T>);
+}
+
+impl<T: Debug + Clone> InsertNode<T> for Node<T> {
+	/// Inserts a new node at the same depth-level of `&self` and at the given position.
+	///
+	/// # Example
+	///
+	///	```
+	/// let mut node = node!(1, node!(2), node!(4));
+	///
+	///	let two = nodo.child().unwrap();
+	///	two.insert_sibling(23, node!(3));
+	///
+	/// // if the position is bigger than the length, the node gets placed at the end
+	///	let three = node.get_last_child().unwrap();
+	///	println!("{}", three.to_content()); // prints 3
+	/// ```
+	///
+	
+	fn insert_sibling(&self, position: usize, node: Node<T>) {
+		
+		if let Some(parent) = self.parent() {
+		
+			let mut sibling = parent.child().unwrap();
+			let mut c = 0;
+			if c == position {
+					
+			} else {
+				 while let Some(sib) = sibling.next() {
+					sibling = sib;
+					c += 1;
+					if c == position {
+						break; 
+					}
+				}
+			}
+			
+
+			if c != position {
+				// append to the last
+				sibling.append_next(node.clone());
+			} else {
+
+				node.get_mut().parent = Some(parent.downgrade());
+
+				if let Some(prev) = sibling.prev() {
+					let mut previous = prev;
+					previous.get_mut().next = Some(node.clone());
+				} else {
+					parent.get_mut().child = Some(node.clone());
+				}
+
+				sibling.get_mut().prev = Some(node.downgrade());
+			}
+		} else {
+			panic!("To append a node at the root-level you should be using a NodeList. Appending the first node would make it go out of scope as there would not be any strong reference counter to it.")
+		}
+	}
+
+	/// Inserts a new node to the childrenl of `&self` and at the given position.
+	///
+	/// # Example
+	///
+	///	```
+	/// let mut node = node!(1, node!(2), node!(4));
+	///
+	///	node.insert_child(2, node!(3));
+	///
+	///	let three = node.get_last_child().unwrap();
+	///	println!("{}", three.to_content()); // prints 3
+	/// ```
+	///
+	
+	fn insert_child(&self, position: usize, node: Node<T>) {
+		if let Some(first_child) = self.child() {
+			let mut child = first_child;
+			let c = 0;
+
+			while let Some(chi) = child.child() {
+				child = chi;
+				if c == position {
+					break;
+				}
+			} 
+
+			node.get_mut().parent = Some(self.downgrade());
+
+			if c != position {
+				child.append_next(node);
+			} else {
+				// we have child  = the node at the c position
+				if let Some(next) = child.next() {
+					next.get_mut().prev = Some(node.downgrade());
+				}
+				if let Some(prev) = child.prev() {
+					prev.get_mut().next = Some(node);
+				}
+			}
+		} else {
+
+			node.get_mut().parent = Some(self.downgrade());
+			self.get_mut().child = Some(node);
+		}
+	}	
+}
 /// Generate a node blazingly fast, with any number of child nodes.
 /// 
 /// # Example

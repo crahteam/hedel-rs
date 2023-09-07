@@ -9,6 +9,8 @@ pub mod prelude {
 		HedelGet,
 		HedelCollect,
 		HedelDetach,
+		AppendNode,
+		InsertNode,
 		NodeComparable
 	};
 }

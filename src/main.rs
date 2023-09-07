@@ -76,6 +76,14 @@ fn main() {
 	});
 	
 	let due = node.to_content();
+
+
 	println!("sono il {}", due);
+
+	let mut nodo = node!(1, node!(2), node!(4));
+	let uno = nodo.get_last_child().unwrap();	
+	uno.append_next(node!(5));
+	let tre = nodo.get_last_child().unwrap();
+	println!("INSERIMENTO: {}", tre.to_content());
 	println!("{:?}", now.elapsed().as_nanos());
 }
