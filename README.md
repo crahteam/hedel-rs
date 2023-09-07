@@ -64,8 +64,22 @@ fn main() {
   assert!(NumIdent::BiggerThan(2).compare(&node));
 }  
 ```
-- Collect: , iterate over the linked list and collect
+- Collect: iterate over the linked list and collect
   only the nodes matching the identifier.
+```rust
+let node = node!(1,
+  node!(2),
+  node!(3),
+  node!(4),
+  node!(5)
+);
+
+let collection = node.collect_children(&NumIdent::BiggerThan(3));
+
+for node in collection.into_iter() {
+  println!("{}" node.to_content());
+}
+```
 - Identify and detach: iterate over the linked list and detach only the nodes matching the identifier (move out or remove).
 - Macros: generate nodes blazingly fast with node!() and list!()
   
