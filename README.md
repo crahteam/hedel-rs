@@ -1,9 +1,7 @@
 
-# hedel-rs
+# hedel-rs [![License](https://img.shields.io/badge/licence-GPL3.0-blue)](LICENSE-GPL) [![Latest Version](https://img.shields.io/badge/crates.io-v0.1.1-yellow)](https://crates.io/crates/hedel-rs) [![Documentation](https://img.shields.io/badge/docs.rs-hedel--rs-red)](https://docs.rs/hedel-rs)
 
-> **A Rust Hierarchical Doubly Linked List**
-
-[![License](https://img.shields.io/badge/licence-GPL3.0-blue)](LICENSE-GPL)
+**A Hierarchical Doubly Linked List**
 
 hedel-rs provides all you need to create your own abstraction over a
 hierarchical doubly linked list in Rust, suitable choice for a DOM tree.
