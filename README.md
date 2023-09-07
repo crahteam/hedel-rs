@@ -30,56 +30,56 @@ hedel isn't exactly a tree structure.
 - `Node`/`WeakNode`: to avoid memory-leaking we also provide a weak version of `Node`.
 - Identify and compare: create your own identifier implementing the `CompareNode` trait.
 
-```rust
-pub enum NumIdent {
-      Equal(i32),
-      BiggerThan(i32),
-      SmallerThan(i32)
-}
-
-impl CompareNode<i32> for NumIdent {
-    fn compare(&self, node: &Node<i32>) -> bool {
-        match &self {
-          Equal(n) => {
-                as_content!(node, |content| {
-                  return content == &n;
-                });
-            },
-          BiggerThan(n) => {
-            as_content!(node, |content| {
-              return content > &n;
-            });
-          },
-          SmallerThan(n) => {
-            as_content!(node, |content| {
-                return content < &n;
-            });
-          }
-      }
+  ```rust
+  pub enum NumIdent {
+        Equal(i32),
+        BiggerThan(i32),
+        SmallerThan(i32)
   }
-}
-
-fn main() {
-  let node = node!(3);
-  assert!(NumIdent::BiggerThan(2).compare(&node));
-}  
-```
+  
+  impl CompareNode<i32> for NumIdent {
+      fn compare(&self, node: &Node<i32>) -> bool {
+          match &self {
+            Equal(n) => {
+                  as_content!(node, |content| {
+                    return content == &n;
+                  });
+              },
+            BiggerThan(n) => {
+              as_content!(node, |content| {
+                return content > &n;
+              });
+            },
+            SmallerThan(n) => {
+              as_content!(node, |content| {
+                  return content < &n;
+              });
+            }
+        }
+    }
+  }
+  
+  fn main() {
+    let node = node!(3);
+    assert!(NumIdent::BiggerThan(2).compare(&node));
+  }  
+  ```
 - Collect: iterate over the linked list and collect
   only the nodes matching the identifier.
-```rust
-let node = node!(1,
-  node!(2),
-  node!(3),
-  node!(4),
-  node!(5)
-);
-
-let collection = node.collect_children(&NumIdent::BiggerThan(3));
-
-for node in collection.into_iter() {
-  println!("{}" node.to_content());
-}
-```
+  ```rust
+  let node = node!(1,
+    node!(2),
+    node!(3),
+    node!(4),
+    node!(5)
+  );
+  
+  let collection = node.collect_children(&NumIdent::BiggerThan(3));
+  
+  for node in collection.into_iter() {
+    println!("{}" node.to_content());
+  }
+  ```
 - Identify and detach: iterate over the linked list and detach only the nodes matching the identifier (move out or remove).
 - Macros: generate nodes blazingly fast with node!() and list!()
   
