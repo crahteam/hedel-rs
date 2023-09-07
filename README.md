@@ -30,39 +30,39 @@ hedel isn't exactly a tree structure.
 - `Node`/`WeakNode`: to avoid memory-leaking we also provide a weak version of `Node`.
 - Identify and compare: create your own identifier implementing the `CompareNode` trait.
 
-  ```rust
-  pub enum NumIdent {
-        Equal(i32),
-        BiggerThan(i32),
-        SmallerThan(i32)
-  }
+```rust
+pub enum NumIdent {
+      Equal(i32),
+      BiggerThan(i32),
+      SmallerThan(i32)
+}
 
-  impl CompareNode<i32> for NumIdent {
-      fn compare(&self, node: &Node<i32>) -> bool {
-        	match &self {
-  					Equal(n) => {
-								as_content!(node, |content| {
-									return content == &n;
-								});
-						},
-  					BiggerThan(n) => {
-  						as_content!(node, |content| {
-  							return content > &n;
-  						});
-  					},
-  					SmallerThan(n) => {
-  						as_content!(node, |content| {
-  								return content < &n;
-  						});
-  					}
-  			}
-    }
+impl CompareNode<i32> for NumIdent {
+    fn compare(&self, node: &Node<i32>) -> bool {
+        match &self {
+          Equal(n) => {
+                as_content!(node, |content| {
+                  return content == &n;
+                });
+            },
+          BiggerThan(n) => {
+            as_content!(node, |content| {
+              return content > &n;
+            });
+          },
+          SmallerThan(n) => {
+            as_content!(node, |content| {
+                return content < &n;
+            });
+          }
+      }
   }
+}
 
-  fn main() {
-	  let node = node!(3);
-    assert!(NumIdent::BiggerThan(2).compare(&node));
-  }
+fn main() {
+  let node = node!(3);
+  assert!(NumIdent::BiggerThan(2).compare(&node));
+}  
 ```
 - Collect: , iterate over the linked list and collect
   only the nodes matching the identifier.
