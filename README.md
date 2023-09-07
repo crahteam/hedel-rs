@@ -56,13 +56,13 @@ hedel isn't exactly a tree structure.
   						});
   					}
   			}
-  	}
-}
+    }
+  }
 
-fn main() {
-	let node = node!(3);
-  assert!(NumIdent::BiggerThan(2).compare(&node));
-}
+  fn main() {
+	  let node = node!(3);
+    assert!(NumIdent::BiggerThan(2).compare(&node));
+  }
 ```
 - Collect: , iterate over the linked list and collect
   only the nodes matching the identifier.
