@@ -12,16 +12,13 @@ use crate::cell::{
 	RefHedel,
 	RefMutHedel,
 };
-
+use crate::{
+	list::{
+		WeakList,
+		List
+	}
+};
 use crate::errors::HedelError;
-
-/// Necessary indirection to ensure the presence of the `List` variant,
-/// used in `NodeList::new`.
-#[derive(Debug, Clone)]
-pub enum Content<T: Debug + Clone> {
-	List(Box<Content<T>>),
-	Custom(T)
-}
 
 /// NodeInner contains pointers in both vertical and horizontal directions
 /// and a custom content field.
@@ -31,7 +28,8 @@ pub struct NodeInner<T: Debug + Clone> {
 	pub prev: Option<WeakNode<T>>,
 	pub child: Option<Node<T>>,
 	pub parent: Option<WeakNode<T>>,
-	pub content: Content<T>
+	pub list: Option<WeakList<T>>,
+	pub content: T
 }
 
 /// `Rc` is a strong pointer meaning it increment a reference counter.
@@ -73,13 +71,14 @@ impl<T: Debug + Clone> Node<T> {
 	/// Default constructor. Notice how it builds a stand-alone node,
 	/// not pointing to any parent, any sibling and any child,
 	/// but owning the content
-	pub fn new(content: Content<T>) -> Self {
+	pub fn new(content: T) -> Self {
 		Self {
 			inner: Rc::new(HedelCell::new(NodeInner::<T> {
 				next: None,
 				prev: None,
 				child: None,
 				parent: None,
+				list: None,
 				content
 			})),
 		}
@@ -136,35 +135,22 @@ impl<T: Debug + Clone> Node<T> {
 		} None
 	}
 
+	/// if currently under a NodeList, returns it.
+	pub fn list(&self) -> Option<List<T>> {	
+		if let Some(ref l) = self.get().list {
+			return Some(l.upgrade()?);
+		} None
+	}
+
 	/// Get the first child `Node` in vertical direction.
 	pub fn child(&self) -> Option<Node<T>> {
 		self.get().child.clone()
 	}
 	
-	/// clones the `NodeInner`'s content field and returns it.
-	/// If the content is wrapped in nested `Content::List(...)`, 
-	/// the value T in `Content::Custom(T)` at the end of the recursion is returned.
-	pub fn to_content<'a>(&'a self) -> T {
-		match &self.get().content {
-			Content::Custom(val) => {
-				val.clone()
-			},
-			Content::List(ptr) => {
-				
-				let mut content = &**ptr;
-				
-				while let Content::List(c) = content {
-					content = &*c;
-				}
-
-				if let Content::Custom(ref val) = content {
-					return val.clone();
-				}
-
-				unreachable!("There always is a Content::Custom at the end of the recursion.");
-			}
-		}
+	pub fn to_content(self) -> T {
+		self.get().content.clone()	
 	}
+
 	/// Re-set the `parent`, `next` and `prev` fields on the `Node`.
 	/// WARNING: this is meant to be used by `NodeCollection::free` after 
 	/// the `HedelDetach::detach_preserve` function. Refer to it's documentation
@@ -185,36 +171,27 @@ impl<T: Debug + Clone> Node<T> {
 /// Copy-free alternative to `Node::to_content`.
 ///
 /// # Example
+///
 /// ```
-/// let node = node!(34);
-/// let c = 20;
-/// as_content!(&node, |num| {
-///		if num > &c {
-///			println!("I am {}", num);
-///		}
-/// });
+/// use hedel_rs::prelude::*;
+/// use hedel_rs::*;
+/// 
+/// fn main() {
+///		let node = node!(34);
+///		let c = 20;
+///		as_content!(&node, |num| {
+///			if num > c {
+///				println!("I am {}", num);
+///			}
+///		});
+/// }
 /// ```
 #[macro_export]
 macro_rules! as_content {
-	($node: expr, |$name: ident| $cl: expr) => {
+	($self: expr, |$ident: ident| $cl: expr) => {
 		{
-			match &$node.get().content {
-				hedel_rs::Content::Custom($name) => {
-					$cl;
-				}
-				hedel_rs::Content::List(ptr) => {
-					let mut content = &**ptr;
-					while let hedel_rs::Content::List(c) = content {
-						content = &*c;
-					}
-
-					if let hedel_rs::Content::Custom($name) = content {
-						$cl;
-					}
-
-					unreachable!("There always is a Content::Custom at the end of the recursion.");
-				}
-			}
+			let $ident = $self.get().content;
+			$cl
 		}
 	}
 }
@@ -281,26 +258,71 @@ impl<T: Debug + Clone> DetachNode<T> for Node<T> {
 	/// # Example
 	/// 
 	/// ```
-	/// let mut detached_nodes: NodeCollection<T> = NodeCollection::<T>::new();
+	/// use hedel_rs::prelude::*;
+	/// use hedel_rs::*;
+	/// 
+	/// pub enum NumIdent {
+	///      Equal(i32),
+	///      BiggerThan(i32),
+	///      SmallerThan(i32)
+	///}
+	/// 
+	///impl CompareNode<i32> for NumIdent {
+	///    fn compare(&self, node: &Node<i32>) -> bool {
+	///        match &self {
+	///          NumIdent::Equal(n) => {
+	///            as_content!(node, |content| {
+	///                content == *n
+	///            })
+	///          },
+	///          NumIdent::BiggerThan(n) => {
+	///            as_content!(node, |content| {
+	///             	content > *n
+	///            })
+	///          },
+	///          NumIdent::SmallerThan(n) => {
+	///            as_content!(node, |content| {
+	///             	content < *n
+	///            })
+	///          }
+	///      }
+	///  }
+	///}
 	///
-	/// if let Some(next) = my_node.next() {
+	/// fn main() {
+	///		let list = list!(
+	///			node!(1),
+	///			node!(2),
+	///			node!(3),
+	///			node!(4),
+	///			node!(5),
+	///			node!(6)
+	///		);
 	///
-	///		let mut next = next;
+	///		let ident = NumIdent::SmallerThan(4);
+	///
+	///		let mut detached_nodes = NodeCollection::<i32>::new();
+	///	
+	///		// possible algorithm to detach all the nodes smaller than 4 in a linked list.
+	///		let mut next: Node<i32> = list.first().unwrap();
 	///
 	///		/* do */ {
-	///
-	///			if ident.compare(&next) { next.detach_preserve(&mut detached_nodes); }
-	///
+	///			if ident.compare(&next) {
+	///				next.detach_preserve(&mut detached_nodes);
+	///			}
 	///		} while let Some(n) = next.next() {
 	///
 	///			next = n;
 	///
-	///			if ident.compare(&next) { next.detach_preserve(&mut detached_nodes); }
-	///
+	///			if ident.compare(&next) {
+	///				next.detach_preserve(&mut detached_nodes);
+	///			}
 	///		}
-	///	}
-	/// // this will re-set all the `parent`, `next`, `previous` pointers in every Node. 
-	/// detached_nodes.free();
+	///
+	///		// this will finally re-set to None every pointer in the collected
+	///		// nodes.
+	///		detached_nodes.free();
+	/// }
 	/// ```
 	fn detach_preserve(&self, vec: &mut NodeCollection<T>) {
 							// 1				3
@@ -357,12 +379,17 @@ pub struct NodeCollection<T: Debug + Clone> {
 impl<T: Debug + Clone> NodeCollection<T> {
 	
 	/// Builds a new collection with the vector provided.
-	pub fn new(nodes: Vec<Node<T>>) -> Self {
+	pub fn from_vec(nodes: Vec<Node<T>>) -> Self {
 		Self {
 			nodes
 		}
 	}
-
+		
+	pub fn new() -> Self {
+		Self {
+			nodes: Vec::new()
+		}
+	}
 	/// Consume `self` and retrive its `Node`s.
 	pub fn into_nodes(self) -> Vec<Node<T>> {
 		self.nodes
@@ -412,6 +439,9 @@ impl<T: Debug + Clone> IntoIterator for NodeCollection<T> {
 /// # Example
 ///
 /// ```
+/// use hedel_rs::prelude::*;
+/// use hedel_rs::*;
+///
 /// pub enum NumIdent {
 ///		BiggerThan(i32),
 ///		SmallerThan(i32)
@@ -422,10 +452,10 @@ impl<T: Debug + Clone> IntoIterator for NodeCollection<T> {
 /// 		as_content!(node, |content| {
 ///				match &self {
 ///					NumIdent::BiggerThan(num) => {
-///						content > num
+///						return content > *num;
 ///					},
 ///					NumIdent::SmallerThan(num) => {
-///						content < num
+///						return content < *num;
 ///					}
 ///				}
 ///			});			
@@ -499,7 +529,7 @@ impl<T: Debug + Clone, I: CompareNode<T>> CollectNode<T, I> for Node<T> {
 			}
 		}
 
-		NodeCollection::<T>::new(collection) 
+		NodeCollection::<T>::from_vec(collection) 
 	}
 
 	/// Given an identifier of type implementing `CompareNode` this iterates over all the nodes that stand 
@@ -575,7 +605,7 @@ impl<T: Debug + Clone, I: CompareNode<T>> CollectNode<T, I> for Node<T> {
 			}
 		}
 
-		NodeCollection::<T>::new(collection)
+		NodeCollection::<T>::from_vec(collection)
 	}
 	
 	/// Given an identifier of type implementing `CompareNode` this iterates over all the nodes in the 
@@ -587,20 +617,53 @@ impl<T: Debug + Clone, I: CompareNode<T>> CollectNode<T, I> for Node<T> {
 	/// # Example
 	///
 	/// ```
-	///	let node = node!(
-	/// 	node!(8),
-	///		node!(3),
-	///		node!(7),
-	///		node!(6, node!(3))
-	/// );
+	/// use hedel_rs::prelude::*;
+	/// use hedel_rs::*;
+	/// 
+	/// pub enum NumIdent {
+	/// 	  Equal(i32),
+	/// 	  BiggerThan(i32),
+	/// 	  SmallerThan(i32)
+	/// }
 	///
-	/// // retrive any child
-	/// let a = node.get_last_child().unwrap();
+	/// impl CompareNode<i32> for NumIdent {
+	/// 	fn compare(&self, node: &Node<i32>) -> bool {
+	/// 		match &self {
+	/// 		  NumIdent::Equal(n) => {
+	/// 			as_content!(node, |content| {
+	/// 			  content == *n
+	/// 			})
+	/// 	   	  },
+	/// 		  NumIdent::BiggerThan(n) => {
+	/// 			as_content!(node, |content| {
+	/// 			  content > *n
+	/// 			})
+	/// 		  },
+	/// 		  NumIdent::SmallerThan(n) => {
+	/// 			as_content!(node, |content| {
+	/// 				content < *n
+	/// 			})
+	/// 		  }
+	/// 	  }
+	///   }
+	/// }
 	///
-	/// let collection = a.collect_linked_list(&NumIdent::SmallerThan(5));
+	/// fn main() {
+	///		let node = node!(1,
+	///			node!(8),
+	///			node!(3),
+	///			node!(7),
+	///			node!(6, node!(3))
+	///		);
 	///
-	/// for node in collection.into_iter() {
-	/// 	println!("{}", node.to_content());
+	///		// retrive any child
+	///		let a = node.get_last_child().unwrap();
+	///
+	///		let collection = a.collect_linked_list(&NumIdent::SmallerThan(5));
+	///
+	///		for node in collection.into_iter() {
+	///			println!("{}", node.to_content());
+	///		}
 	/// }
 	/// ```
 	fn collect_linked_list(&self, ident: &I) -> NodeCollection<T> {
@@ -727,7 +790,7 @@ impl<T: Debug + Clone, I: CompareNode<T>> CollectNode<T, I> for Node<T> {
 			}
 		}
 
-		NodeCollection::<T>::new(collection)
+		NodeCollection::<T>::from_vec(collection)
 	}
 } 
 
@@ -747,14 +810,51 @@ impl<T: Debug + Clone, I: CompareNode<T>> FindNode<T, I> for Node<T> {
 	/// # Example
 	///
 	/// ```
-	/// let node = node!(
-	/// 	node!(1),
-	///		node!(34),
-	///		node!(66)
-	/// ); 
-	/// 
-	///	let one = node.get_first_child();
-	/// let ss: Option<Node<i32>> = one.find_next(&NumIdent::BiggerThan(50)); // returns the `node!(66)`
+	/// use hedel_rs::prelude::*;
+	/// use hedel_rs::*;
+	///
+	/// pub enum NumIdent {
+	///      Equal(i32),
+	///      BiggerThan(i32),
+	///      SmallerThan(i32)
+	/// }
+	///
+	/// impl CompareNode<i32> for NumIdent {
+	///     fn compare(&self, node: &Node<i32>) -> bool {
+	///         match &self {
+	///           NumIdent::Equal(n) => {
+	///               as_content!(node, |content| {
+	///                  content == *n
+	///               })
+	///            },
+	///           NumIdent::BiggerThan(n) => {
+	///             as_content!(node, |content| {
+	///               content > *n
+	///             })
+	///           },
+	///           NumIdent::SmallerThan(n) => {
+	///             as_content!(node, |content| {
+	///                 content < *n
+	///             })
+	///           }
+	///       }
+	///   }
+	/// }
+	///
+	/// fn main() {
+	///
+	///		let node = node!(33,
+	///			node!(1),
+	///			node!(34),
+	///			node!(66)
+	///		); 
+	///		
+	///		let one = node.child().unwrap();
+	///		assert_eq!(
+	///			one.find_next(&NumIdent::BiggerThan(50)).unwrap().to_content(),
+	///			66
+	///		); 
+	/// }
 	/// ```
 	fn find_next(&self, ident: &I) -> Option<Node<T>> {
 		if let Some(next) = self.next() {
@@ -1172,10 +1272,15 @@ impl<T: Debug + Clone> AppendNode<T> for Node<T> {
 	/// # Example
 	///
 	/// ```
-	/// let node = node!(1, node!(2));
-	/// let two = node.child();
-	/// two.append_next(node!(3));
-	/// println!("{}", node.get_last_child().to_content());
+	/// use hedel_rs::prelude::*;
+	/// use hedel_rs::*;
+	///
+	/// fn main() {
+	///		let node = node!(1, node!(2));
+	///		let two = node.child().unwrap();                            	
+	///		two.append_next(node!(3));                         	
+	///		assert_eq!(node.get_last_child().unwrap().to_content(), 3);	
+	/// }	
 	/// ```
 	fn append_next(&self, node: Node<T>) {
 		if let Some(parent) = self.parent() {
@@ -1196,23 +1301,43 @@ impl<T: Debug + Clone> AppendNode<T> for Node<T> {
 	/// # Example
 	///
 	/// ```
-	/// let node = node!(1, node!(2));
-	/// let two = node.child();
-	/// two.append_prev(node!(3));
-	/// println!("{}", node.child().to_content());
+	/// use hedel_rs::prelude::*;
+	/// use hedel_rs::*;
+	///
+	/// fn main() {
+	///		let node = node!(1, node!(2));
+	///		let two = node.child().unwrap();
+	///		two.append_prev(node!(3));
+	///		assert_eq!(node.child().unwrap().to_content(), 3);
+	/// }
 	/// ```
 	fn append_prev(&self, node: Node<T>) {
-		if let Some(parent) = self.parent() {
-			node.get_mut().parent = Some(parent.downgrade());
-		}
+		
+		
+		
 		
 		if let Some(prev) = self.prev() {
 			prev.get_mut().next = Some(node.clone());
 			node.get_mut().prev = Some(prev.downgrade());
-		}
+			self.get_mut().prev = Some(node.downgrade());
+			node.get_mut().next = Some(self.clone());
 
-		self.get_mut().prev = Some(node.downgrade());
-		node.get_mut().next = Some(self.clone());
+
+		} else {
+			if let Some(list) = self.list() {
+
+				self.get_mut().prev = Some(node.downgrade());
+				node.get_mut().next = Some(self.clone());
+				node.get_mut().list = Some(list.downgrade());	
+				*list.first.get_mut() = Some(node.clone());
+				
+			} else { /* !!!!HELP */ } 
+		}
+		
+		if let Some(parent) = self.parent() {
+			node.get_mut().parent = Some(parent.downgrade());
+			parent.get_mut().child = Some(node.clone());
+		}	
 	}
 
 	/// Inserts a new node right after the last child of `&self`.
@@ -1220,9 +1345,14 @@ impl<T: Debug + Clone> AppendNode<T> for Node<T> {
 	/// # Example
 	///
 	/// ```
-	/// let node = node!(1, node!(2));
-	/// node.append_child(node!(3));
-	/// println!("{}", node.get_last_child().to_content());
+	/// use hedel_rs::prelude::*;
+	/// use hedel_rs::*;
+	///
+	/// fn main() {
+	///		let node = node!(1, node!(2));
+	///		node.append_child(node!(3));
+	///		println!("{}", node.get_last_child().unwrap().to_content());
+	/// }
 	/// ```
 	fn append_child(&self, node: Node<T>) {
 		node.get_mut().parent = Some(self.downgrade());
@@ -1245,54 +1375,67 @@ impl<T: Debug + Clone> InsertNode<T> for Node<T> {
 	/// # Example
 	///
 	///	```
-	/// let mut node = node!(1, node!(2), node!(4));
+	/// use hedel_rs::prelude::*;
+	/// use hedel_rs::*;
 	///
-	///	let two = nodo.child().unwrap();
-	///	two.insert_sibling(23, node!(3));
+	/// fn main() {
+	///		let mut node = node!(1, node!(2), node!(4));
 	///
-	/// // if the position is bigger than the length, the node gets placed at the end
-	///	let three = node.get_last_child().unwrap();
-	///	println!("{}", three.to_content()); // prints 3
+	///		let two = node.child().unwrap();
+	///		two.insert_sibling(23, node!(3));
+	///
+	///		// if the position is bigger than the length, the node gets placed at the end
+	///		let three = node.get_last_child().unwrap();
+	///		println!("{}", three.to_content()); // prints 3
+	/// }
 	/// ```
 	///
 	
 	fn insert_sibling(&self, position: usize, node: Node<T>) {
 		
-		if let Some(parent) = self.parent() {
+		let mut sibling = self.clone(); 
+
+		let mut c = 0;
+
+		if c != position {
+			while let Some(sib) = sibling.next() {
+				sibling = sib;
+				c += 1;
+				if c == position {
+					break; 
+				}
+			}	
+		} 
 		
-			let mut sibling = parent.child().unwrap();
-			let mut c = 0;
-			if c == position {
-					
-			} else {
-				 while let Some(sib) = sibling.next() {
-					sibling = sib;
-					c += 1;
-					if c == position {
-						break; 
-					}
-				}
-			}
-			
+		// PARENT
+		//  node 0 -> next: my OK
+		//  node 1 -> prev: my
+		//  node 2
+		//  
+		// my -> next: node 1
+		// my -> prev: node 0
+		// my -> parent: ---    OK
 
-			if c != position {
-				// append to the last
-				sibling.append_next(node.clone());
-			} else {
-
-				node.get_mut().parent = Some(parent.downgrade());
-
-				if let Some(prev) = sibling.prev() {
-					let previous = prev;
-					previous.get_mut().next = Some(node.clone());
-				} else {
-					parent.get_mut().child = Some(node.clone());
-				}
-
-				sibling.get_mut().prev = Some(node.downgrade());
-			}
+		if c != position {
+			// append to the last
+			sibling.append_next(node.clone());
 		} else {
-			panic!("To append a node at the root-level you should be using a NodeList. Appending the first node would make it go out of scope as there would not be any strong reference counter to it.")
+			
+			if let Some(parent) = self.parent() {
+				node.get_mut().parent = Some(parent.downgrade());
+			}
+
+			if let Some(prev) = sibling.prev() {
+				let previous = prev;
+				previous.get_mut().next = Some(node.clone());
+			} else {
+				if let Some(parent) = self.parent() {
+					// NOTE: NOT SUPPORTING NODELIST, BUG
+					parent.get_mut().child = Some(node.clone());
+				}	
+			}
+
+			sibling.get_mut().prev = Some(node.downgrade());
 		}
 	}
 
@@ -1301,42 +1444,24 @@ impl<T: Debug + Clone> InsertNode<T> for Node<T> {
 	/// # Example
 	///
 	///	```
-	/// let mut node = node!(1, node!(2), node!(4));
+	/// use hedel_rs::prelude::*;
+	/// use hedel_rs::*;
 	///
-	///	node.insert_child(2, node!(3));
+	/// fn main() {
+	///		let mut node = node!(1, node!(2), node!(4));
 	///
-	///	let three = node.get_last_child().unwrap();
-	///	println!("{}", three.to_content()); // prints 3
+	///		node.insert_child(2, node!(3));
+	///
+	///		let three = node.get_last_child().unwrap();
+	///		println!("{}", three.to_content()); // prints 3
+	/// }
 	/// ```
 	///
 	
 	fn insert_child(&self, position: usize, node: Node<T>) {
 		if let Some(first_child) = self.child() {
-			let mut child = first_child;
-			let c = 0;
-
-			while let Some(chi) = child.child() {
-				child = chi;
-				if c == position {
-					break;
-				}
-			} 
-
-			node.get_mut().parent = Some(self.downgrade());
-
-			if c != position {
-				child.append_next(node);
-			} else {
-				// we have child  = the node at the c position
-				if let Some(next) = child.next() {
-					next.get_mut().prev = Some(node.downgrade());
-				}
-				if let Some(prev) = child.prev() {
-					prev.get_mut().next = Some(node);
-				}
-			}
+			first_child.insert_sibling(position, node);
 		} else {
-
 			node.get_mut().parent = Some(self.downgrade());
 			self.get_mut().child = Some(node);
 		}
@@ -1347,18 +1472,23 @@ impl<T: Debug + Clone> InsertNode<T> for Node<T> {
 /// # Example
 ///
 /// ```
-/// let my_node = node!("Parent",
-///		node!("Child"),
-///		node!("Child")
-///	);
+/// use hedel_rs::prelude::*;
+/// use hedel_rs::*;
+/// 
+/// fn main() {
+///		let my_node = node!("Parent",
+///			node!("Child"),
+///			node!("Child")
+///		);
 ///
-/// let another_node = node!("Another");
+///		let another_node = node!("Another");
+/// }
 /// ```
 #[macro_export]
 macro_rules! node {
 	($content: expr $(,$node: expr)*) => {
 		{
-			let mut node = hedel_rs::Node::new(hedel_rs::Content::Custom($content));
+			let mut node = hedel_rs::Node::new($content);
 
 			let mut children: Vec<hedel_rs::Node<_>> = Vec::new();
 
@@ -1369,7 +1499,7 @@ macro_rules! node {
 			$(
 				let n: hedel_rs::Node::<_> = $node.into();
 				
-				if let hedel_rs::Content::List(_) = n.get().content {
+				if let Some(_) = n.get().list {
 					lists.push(c as usize);
 				}
 

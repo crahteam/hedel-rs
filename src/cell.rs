@@ -14,25 +14,19 @@ use std::{
 
 use crate::errors::HedelError;
 
-/// # Variants
-/// 
-/// `Exclusive` is the flag set when a mutable reference is in scope
-///
-/// `Shared(NonZeroUsize)`: is the flag set when there's atleast one immutable reference in scope
-/// it's inner value is set to the number of references alive. When this counter reaches 0,
-/// the flag is set to None instead
-///
-/// `None`: there isn't any reference alive to the data.
-///
 #[derive(Debug, Clone, Copy)]
 pub enum BorrowFlag {
+	/// This flag indicates that a mutable reference is in scope.
 	Exclusive, 
+	/// This flag indicates that one or more immutable references are in scope.
+	/// Contains the number of references alive.
 	Shared(NonZeroUsize),
+	/// No reference is in scope.
 	None
 }
 
 /// A safe custom `RefCell-like` cell, based on `UnsafeCell`, and relying on a `BorrowFlag`
-/// for runtime borrow checking
+/// for runtime borrow checking.
 #[derive(Debug)]
 pub struct HedelCell<T: Debug> {
 	flag: Cell<BorrowFlag>,
@@ -46,8 +40,12 @@ impl<T: Debug> HedelCell<T> {
 	/// # Example
 	///
 	/// ```
-	/// let value = HedelCell::<i32>::new(67);
-	/// println!("{:?}", value.get());
+	/// use hedel_rs::cell::HedelCell;
+	///
+	/// fn main() {
+	/// 	let cell = HedelCell::<i32>::new(67);
+	///		println!("{:?}", cell.get());
+	/// }
 	/// ```
 	pub fn new(value: T) -> Self {
 		Self {
@@ -64,10 +62,14 @@ impl<T: Debug> HedelCell<T> {
 	/// # Example
 	///
 	/// ```
-	/// let cell = HedelCell::<i32>::new(56);
-	/// let borrow = cell.get();
-	/// let borrow_2 = cell.get();
-	/// println!("{:?}", borrow); // prints 56
+	/// use hedel_rs::cell::HedelCell;
+	///
+	/// fn main() {
+	///		let cell = HedelCell::<i32>::new(56);
+	///		let borrow = cell.get();
+	///		let borrow_2 = cell.get();
+	///		println!("{:?}", borrow); // prints 56
+	/// }
 	/// ```
 	pub fn try_get(&self) -> Result<RefHedel<T>, HedelError> {
 		
@@ -102,12 +104,18 @@ impl<T: Debug> HedelCell<T> {
 	/// # Example
 	/// 
 	/// ```
-	/// let cell = HedelCell::<i32>::new(23);
-	/// *cell.get_mut() = 36;
-	/// let mut borrow = cell.get_mut();
-	/// *borrow = 15;
-	/// 
-	/// println!("{:?}", cell.get()); // this will panic!
+	/// use hedel_rs::cell::HedelCell;
+	///
+	/// fn main() {
+	///		
+	/// 	let cell = HedelCell::<i32>::new(23);
+	/// 	*cell.get_mut() = 36;
+	/// 	let mut borrow = cell.get_mut();
+	/// 	*borrow = 15;
+	///		// this would panic
+	/// 	// println!("{:?}", cell.get()); 
+	///	}
+	 
 	/// ```
 	pub fn try_get_mut<'a>(&'a self) -> Result<RefMutHedel<'a, T>, HedelError> {
 		if let BorrowFlag::None = self.flag.get() {
@@ -139,6 +147,7 @@ impl<T: Debug> HedelCell<T> {
 
 /// Represents an immutable reference to the content in a `HedelCell`.
 /// Has to be built by calling `HedelCell::get`.
+#[derive(Debug)]
 pub struct RefHedel<'a, T: Debug> {
 	value: &'a T,
 	flag: &'a Cell<BorrowFlag>

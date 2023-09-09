@@ -14,9 +14,8 @@
 //! 
 //! Hedel isn't exactly a tree structure.
 //! 
-//! - `NodeList` is a wrap around its first node. There isn't any root. This allows for
+//! - `List` is a wrap around its first node. There isn't any root. This allows for
 //!   sibling nodes at the root-level.
-//! `NodeList` also dereferences to its firt node letting you call `Node`'s methods.
 //! - `Node` is a pointer to its content and other pointers to allow navigation. Those pointers are:
 //!   `parent`, `child`, `prev` and `next`, where child is a pointer to its first child.
 //! - Support for node generation using macros: you can use node!(1) and nest how many nodes you want.
@@ -28,21 +27,30 @@
 //! - Macros: generate nodes blazingly fast with node!() and list!()
 //!   
 //!   ```rust
-//!   let node = node!(45);
-//!   let my_node = node!("Parent",
-//!     node!("Child"),
-//!     node!("Child")
-//!   );
+//!   use hedel_rs::prelude::*;
+//!	  use hedel_rs::*;
+//!	  
+//!   fn main() {
+//!		  let node = node!(45);
+//!
+//!		  let my_node = node!("Parent",
+//!			node!("Child"),
+//!			node!("Child")
+//!		  );
 //! 
-//!   let my_list = list!(
-//!     node!(2),
-//!     node!(3)
-//!   );
+//!		  let my_list = list!(
+//!			node!(2),
+//!			node!(3)
+//!		  );
+//!	  }
 //!   ```
 //! 
 //! - Identify and compare: create your own identifier implementing the `CompareNode` trait.
 //! 
 //!   ```rust
+//!	  use hedel_rs::prelude::*;
+//!   use hedel_rs::*;
+//!
 //!   pub enum NumIdent {
 //!         Equal(i32),
 //!         BiggerThan(i32),
@@ -52,19 +60,19 @@
 //!   impl CompareNode<i32> for NumIdent {
 //!       fn compare(&self, node: &Node<i32>) -> bool {
 //!           match &self {
-//!             Equal(n) => {
+//!             NumIdent::Equal(n) => {
 //!                   as_content!(node, |content| {
-//!                     return content == &n;
+//!                     return content == *n;
 //!                   });
 //!               },
-//!             BiggerThan(n) => {
+//!             NumIdent::BiggerThan(n) => {
 //!               as_content!(node, |content| {
-//!                 return content > &n;
+//!                 return content > *n;
 //!               });
 //!             },
-//!             SmallerThan(n) => {
+//!             NumIdent::SmallerThan(n) => {
 //!               as_content!(node, |content| {
-//!                   return content < &n;
+//!                   return content < *n;
 //!               });
 //!             }
 //!         }
@@ -76,52 +84,126 @@
 //!     assert!(NumIdent::BiggerThan(2).compare(&node));
 //!   }  
 //!   ```
+//!
 //! - Collect: iterate over the linked list and collect
 //!   only the nodes matching the identifier.
 //!   ```rust
-//!   let node = node!(1,
-//!     node!(2),
-//!     node!(3),
-//!     node!(4),
-//!     node!(5)
-//!   );
-//!   
-//!   let collection = node.collect_children(&NumIdent::BiggerThan(3));
-//!   
-//!   for node in collection.into_iter() {
-//!     println!("{}" node.to_content());
+//!   use hedel_rs::prelude::*;
+//!	  use hedel_rs::*;
+//!	  
+//!   pub enum NumIdent {
+//!         Equal(i32),
+//!         BiggerThan(i32),
+//!         SmallerThan(i32)
 //!   }
+//!   
+//!   impl CompareNode<i32> for NumIdent {
+//!       fn compare(&self, node: &Node<i32>) -> bool {
+//!           match &self {
+//!             NumIdent::Equal(n) => {
+//!                   as_content!(node, |content| {
+//!                     return content == *n;
+//!                   });
+//!               },
+//!             NumIdent::BiggerThan(n) => {
+//!               as_content!(node, |content| {
+//!                 return content > *n;
+//!               });
+//!             },
+//!             NumIdent::SmallerThan(n) => {
+//!               as_content!(node, |content| {
+//!                   return content < *n;
+//!               });
+//!             }
+//!         }
+//!     }
+//!   }
+//!   
+//!   fn main() {
+//!		  let node = node!(1,
+//!			node!(2),
+//!			node!(3),
+//!			node!(4),
+//!			node!(5)
+//!		  );
+//!		  
+//!		  let collection = node.collect_children(&NumIdent::BiggerThan(3));
+//!		  
+//!		  for node in collection.into_iter() {
+//!			println!("{}", node.to_content());
+//!		  }
+//!	  }
 //!   ```
 //!   
 //! - Detach: detach the nodes matching an identifier in the linked list.
 //!   ```rust
-//!   let node = node!(1
-//!     node!(2),
-//!     node!(3),
-//!     node!(4),
-//!     node!(5)
-//!   );
+//!   use hedel_rs::prelude::*;
+//!	  use hedel_rs::*;
+//!	 
+//!   pub enum NumIdent {
+//!         Equal(i32),
+//!         BiggerThan(i32),
+//!         SmallerThan(i32)
+//!   }
+//!   
+//!   impl CompareNode<i32> for NumIdent {
+//!       fn compare(&self, node: &Node<i32>) -> bool {
+//!           match &self {
+//!             NumIdent::Equal(n) => {
+//!                   as_content!(node, |content| {
+//!                     return content == *n;
+//!                   });
+//!               },
+//!             NumIdent::BiggerThan(n) => {
+//!               as_content!(node, |content| {
+//!                 return content > *n;
+//!               });
+//!             },
+//!             NumIdent::SmallerThan(n) => {
+//!               as_content!(node, |content| {
+//!                   return content < *n;
+//!               });
+//!             }
+//!         }
+//!     }
+//!   }
 //! 
-//!   let three = node.find_child(&NumIdent::Equal(3)).unwrap();
-//!   three.detach();
+//!   fn main() {
+//!		  let node = node!(1,
+//!			node!(2),
+//!			node!(3),
+//!			node!(4),
+//!			node!(5)
+//!		  );
 //! 
-//!   assert_eq!(node.find_child(&NumIdent::Equal(3)), None);
+//!		  let three = node.find_child(&NumIdent::Equal(3)).unwrap();
+//!		  three.detach();
+//! 
+//!		  assert!(node.find_child(&NumIdent::Equal(3)).is_none());
+//!	  }
 //!   ```
+//!
 //! - Insert or Append: insert a node at any position in a linked list.
 //!   ```rust
-//!   let node = node!(1,
-//!     node!(3),
-//!     node!(4),
-//!     node!(5)
-//!   );
+//!	  use hedel_rs::prelude::*;
+//!	  use hedel_rs::*;
+//!	  
+//!	  fn main() {
+//!		let node = node!(1,
+//!       node!(3),
+//!       node!(4),
+//!       node!(5)
+//!   	);
 //! 
-//!   node.insert_child(0, node!(2));
+//!   	node.insert_child(0, node!(2));
 //! 
-//!   assert_eq!(node.child().unwrap().to_content(), 2);
+//!   	assert_eq!(node.child().unwrap().to_content(), 2);
 //! 
-//!   node.append_child(node!(6));
+//!   	node.append_child(node!(6));
 //! 
-//!   assert_eq!(node.get_last_child().unwrap().to_content(), 6);
+//!   	assert_eq!(node.get_last_child().unwrap().to_content(), 6);
+//!   }
+//!   
 //!   ```
 
 pub mod node;
@@ -145,9 +227,9 @@ pub use node::{
 	Node,
 	WeakNode,
 	NodeCollection,
-	Content
 };
 
 pub use list::{
-	NodeList
+	List,
+	WeakList
 };
