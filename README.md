@@ -1,6 +1,6 @@
 
 # hedel-rs 
-[![License](https://img.shields.io/badge/licence-GPL3.0-blue)](LICENSE-GPL)   [![Latest Version](https://img.shields.io/badge/crates.io-v0.1.1-yellow)](https://crates.io/crates/hedel-rs)   [![Documentation](https://img.shields.io/badge/docs.rs-hedel--rs-red)](https://docs.rs/hedel-rs)
+[![License](https://img.shields.io/badge/licence-GPL3.0-blue)](LICENSE-GPL)   [![Latest Version](https://img.shields.io/badge/crates.io-v0.1.3-yellow)](https://crates.io/crates/hedel-rs)   [![Documentation](https://img.shields.io/badge/docs.rs-hedel--rs-red)](https://docs.rs/hedel-rs)
 
 **A Hierarchical Doubly Linked List**
 
